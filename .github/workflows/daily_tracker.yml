@@ -1,4 +1,4 @@
-name: Daily Competitor Tracker
+name: Harpers Riverside Model Comp Daily Tracker
 
 on:
   schedule:
@@ -13,9 +13,15 @@ jobs:
   track-competitor:
     runs-on: ubuntu-latest
 
+    env:
+      ACTIONS_RUNNER_FORCE_NODE24: "1"
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -23,16 +29,16 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Playwright Chromium
+      - name: Install Playwright & OS Dependencies
         run: |
-          playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium
 
-      - name: Run Harpers Riverside Motel Comp Scraper & Analytics
+      - name: Run Harpers Riverside Model Comp Scraper
         run: |
           python tracker.py
 
@@ -42,8 +48,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/
           if git diff --staged --quiet; then
-            echo "No data changes to commit."
+            echo "No changes to commit."
           else
-            git commit -m "Automated daily snapshot: $(date -u +'%Y-%m-%d')"
-            git push
+            git commit -m "Automated daily snapshot (Harpers Riverside Model Comp): $(date -u +'%Y-%m-%d')"
+            git push origin main
           fi
