@@ -28,6 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Playwright Chromium
+        run: |
+          playwright install --with-deps chromium
+
       - name: Run Harpers Riverside Motel Comp Scraper & Analytics
         run: |
           python tracker.py
