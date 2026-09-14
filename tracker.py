@@ -10,7 +10,7 @@ import pandas as pd
 from playwright.sync_api import sync_playwright
 
 # ----------------------------------------------------------------------
-# Configuration: Harpers Riverside Model Comp (Competitor Listings)
+# Configuration: Harpers Riverside Motel Comp (Competitor Listings)
 # ----------------------------------------------------------------------
 LISTINGS = {
     "1697396664319697096": "Room 5 (Queen)",
@@ -222,7 +222,7 @@ def run():
   cutoff = today + timedelta(days=FORWARD_DAYS)
 
   print(
-      f"Starting Harpers Riverside Model Comp sweep for {today_str} (90-day"
+      f"Starting Harpers Riverside Motel Comp sweep for {today_str} (90-day"
       " window)..."
   )
   all_rows = []
@@ -294,7 +294,7 @@ def update_summary(rows: List[Dict[str, Any]], today_str: str):
       compressions.append((d_str, booked_count))
 
   with open(SUMMARY_FILE, "w", encoding="utf-8") as f:
-    f.write(f"# Harpers Riverside Model Comp Intelligence Brief\n\n")
+    f.write(f"# Harpers Riverside Motel Comp Intelligence Brief\n\n")
     f.write(f"**Last Refreshed**: `{today_str}`\n\n")
     f.write(
         "> **Context**: 4-room local competitor set. Total comp capacity = 4"
