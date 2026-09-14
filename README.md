@@ -2,7 +2,7 @@
 
 An automated competitive intelligence pipeline designed for a 4-room boutique motel operating in a 2-property, 8-room local duopoly. 
 
-Because total lodging supply in town is capped at 8 rooms, our competitor—**Stone Manor Motel**—represents exactly 50% of the market. This repository tracks their 4 rooms daily, capturing forward pricing, booking velocity, historical realized occupancy, and high-demand supply compression dates.
+ This repository tracks competitors rooms daily, capturing forward pricing, booking velocity, historical realized occupancy, and high-demand supply compression dates.
 
 ---
 
@@ -24,7 +24,6 @@ The system monitors the 4 renovated rooms at Stone Manor via public Airbnb calen
 ## 2. Repository Structure
 
 ```text
-stone-manor-tracker/
 ├── .github/
 │   └── workflows/
 │       └── daily_tracker.yml   # Scheduled cron automation (GitHub Actions)
