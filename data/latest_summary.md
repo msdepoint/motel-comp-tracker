@@ -1,19 +1,15 @@
-# Stone Manor Competitor Intelligence Brief
+# Harpers Riverside Motel Comp Intelligence Brief
 
-**Last Data Refresh**: `2026-09-14`
+**Last Refreshed**: `2026-09-14`
 
-> **Context**: 4-room duopoly tracking (Stone Manor Rooms 5, 6, 7, 8). Capacity = 4 room-nights/day.
+> **Context**: 4-room local competitor set. Total comp capacity = 4 room-nights/day.
 
-## 1. Historical Realized Performance
-*Historical data is currently accumulating. Once the tracker has collected snapshots over multiple calendar dates, realized occupancy, historical ADR, and booking lead times will populate automatically here.*
+## Forward Occupancy Pacing
+- **Next 7 Days Occupancy**: **25.0%**
+- **Next 30 Days Occupancy**: **25.0%**
+- **Next 60 Days Occupancy**: **25.0%**
 
-## 2. Forward-Looking Occupancy Pacing
-- **Next 7 Days Projected Occupancy**: **0.0%**
-- **Next 30 Days Projected Occupancy**: **0.0%**
-- **Next 60 Days Projected Occupancy**: **0.0%**
+## High Supply Compression Dates (>= 75% Booked)
+When the competitor has 3 or 4 rooms booked, town-wide supply is constrained. Take immediate pricing action:
 
-## 3. High Compression Dates (Competitor >= 75% Full)
-When Stone Manor has 3 or 4 rooms booked, town-wide supply is near zero. Take immediate pricing action:
-
-No dates currently exceed the 75% compression threshold in the next 90 days.
-
+No dates currently exceed 75% compression in the next 90 days.
