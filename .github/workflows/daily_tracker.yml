@@ -1,4 +1,4 @@
-name: Harpers Riverside Model Comp Daily Tracker
+name: Harpers Riverside Motel Comp Daily Tracker
 
 on:
   schedule:
@@ -38,7 +38,7 @@ jobs:
         run: |
           python -m playwright install --with-deps chromium
 
-      - name: Run Harpers Riverside Model Comp Scraper
+      - name: Run Harpers Riverside Motel Comp Scraper
         run: |
           python tracker.py
 
