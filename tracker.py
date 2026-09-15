@@ -36,47 +36,63 @@ def parse_date_str(raw: str) -> Optional[str]:
   return None
 
 
-def get_sample_stay_dates(today: date) -> tuple:
-  """Calculates next upcoming weekend dates to force Airbnb to display live pricing."""
-  # Days until next Friday
-  days_ahead = (4 - today.weekday()) % 7
-  if days_ahead == 0:
-    days_ahead = 7
+def get_guaranteed_open_dates(today: date) -> tuple:
+  """Calculates open midweek dates (next Tuesday-Thursday) so Airbnb calculates rates without collision."""
+  # Days until next Tuesday
+  days_ahead = (1 - today.weekday()) % 7
+  if days_ahead <= 1:
+    days_ahead += 7
   check_in = today + timedelta(days=days_ahead)
-  check_out = check_in + timedelta(days=2)  # 2-night weekend stay
+  check_out = check_in + timedelta(days=2)  # 2-night baseline
   return check_in.strftime("%Y-%m-%d"), check_out.strftime("%Y-%m-%d")
 
 
-def extract_live_nightly_price(page) -> Optional[float]:
-  """Extracts the live nightly rate rendered by Airbnb once dates are provided."""
-  price_selectors = [
+def extract_true_nightly_rate(page) -> Optional[float]:
+  """Extracts the true per-night rate, filtering out stay totals and cleaning fees."""
+  # 1. Check primary price header (e.g., "$135 / night")
+  header_selectors = [
       'span[data-testid*="price"]',
       'div[data-section-id="BOOK_IT_SIDEBAR"] span:has-text("$")',
-      'span:has-text("night")',
+      'span:has-text("/ night")',
       'div:has-text("night")',
-      'span:has-text("total")',
   ]
 
-  for sel in price_selectors:
+  for sel in header_selectors:
     try:
-      elements = page.query_selector_all(sel)
-      for el in elements:
+      for el in page.query_selector_all(sel):
         text = el.inner_text()
-        # Look for explicit "$XXX / night" or "$XXX x Y nights"
-        m_rate = re.search(r"\$([0-9,]+)\s*(?:x|/|\s*per)?\s*night", text, re.I)
-        if m_rate:
-          val = float(m_rate.group(1).replace(",", ""))
-          if 40 <= val <= 1000:
-            return val
-
-        # Fallback to general dollar amounts in booking widget
-        m_gen = re.search(r"\$([0-9,]+)", text)
-        if m_gen:
-          val = float(m_gen.group(1).replace(",", ""))
-          if 50 <= val <= 800:
+        # Explicit "$135 / night" or "$135 night"
+        m = re.search(r"\$([0-9,]+)\s*(?:/|\s*per)?\s*night", text, re.I)
+        if m:
+          val = float(m.group(1).replace(",", ""))
+          if 60 <= val <= 600:
             return val
     except Exception:
       pass
+
+  # 2. Check the price breakdown line item (e.g., "$135 x 2 nights")
+  try:
+    breakdown_elements = page.query_selector_all(
+        'div[data-section-id="BOOK_IT_SIDEBAR"] div, div:has-text("nights")'
+    )
+    for el in breakdown_elements:
+      text = el.inner_text()
+      # Match formula: "$135 x 2 nights" -> group(1) is 135
+      m = re.search(r"\$([0-9,]+)\s*x\s*(\d+)\s*nights?", text, re.I)
+      if m:
+        rate = float(m.group(1).replace(",", ""))
+        if 60 <= rate <= 600:
+          return rate
+
+      # Fallback: if total subtotal is given (e.g. "$270" with "2 nights")
+      m_sub = re.search(r"(\d+)\s*nights?.*?\$([0-9,]+)", text, re.I | re.S)
+      if m_sub:
+        nights = float(m_sub.group(1))
+        total = float(m_sub.group(2).replace(",", ""))
+        if nights > 0 and 60 <= (total / nights) <= 600:
+          return round(total / nights, 2)
+  except Exception:
+    pass
 
   return None
 
@@ -90,8 +106,7 @@ def scrape_listing(
     check_out_sample: str,
     max_retries: int = 2,
 ) -> List[Dict[str, Any]]:
-  """Loads listing with active dates to capture price, then scrapes full calendar."""
-  # Pass sample dates in URL so Airbnb calculates real prices instead of "Add dates for prices"
+  """Scrapes room availability and accurate nightly pricing."""
   url = (
       f"https://www.airbnb.com/rooms/{listing_id}?check_in={check_in_sample}&check_out={check_out_sample}&guests=1&adults=1"
   )
@@ -124,16 +139,14 @@ def scrape_listing(
         page.goto(url, wait_until="domcontentloaded", timeout=50000)
         page.wait_for_timeout(4000)
 
-        # 1. Extract live rate now that dates are populated
-        nightly_rate = extract_live_nightly_price(page)
+        # Extract genuine nightly rate
+        nightly_rate = extract_true_nightly_rate(page)
         if nightly_rate:
-          print(f"    Live nightly rate detected: ${nightly_rate:.2f}")
+          print(f"    Verified nightly rate: ${nightly_rate:.2f}/night")
         else:
-          print(
-              "    Note: Rate not found in sidebar, checking table breakdown..."
-          )
+          print("    Note: Nightly rate not matched in breakdown.")
 
-        # 2. Dismiss overlays
+        # Dismiss modal overlays
         for modal_btn in [
             'button[aria-label="Close"]',
             'button:has-text("Accept")',
@@ -146,12 +159,12 @@ def scrape_listing(
           except Exception:
             pass
 
-        # 3. Scroll to calendar section
+        # Scroll to calendar
         page.evaluate("window.scrollBy(0, 1100)")
         page.wait_for_timeout(3000)
 
-        # 4. Extract dates across 3 month pages
-        for month_step in range(3):
+        # Extract dates across 3 month clicks
+        for _ in range(3):
           day_buttons = page.query_selector_all(
               '[data-testid*="calendar-day-"]'
           )
@@ -166,7 +179,7 @@ def scrape_listing(
             data_blocked = btn.get_attribute("data-is-day-blocked")
             is_html_disabled = btn.is_disabled()
 
-            # Accurate Availability Check
+            # Availability Determination
             is_avail = 1
             if (
                 is_html_disabled
@@ -177,15 +190,19 @@ def scrape_listing(
             ):
               is_avail = 0
 
-            # Cell-level pricing if available, else captured room rate
-            cell_price = nightly_rate
+            # Price Assignment Rule:
+            # - If AVAILABLE: assign the nightly rate
+            # - If BLOCKED/UNAVAILABLE: leave as None (blank)
+            price_val = nightly_rate if is_avail == 1 else None
+
+            # Cell-level override if Airbnb specifically renders a rate on this day
             cell_text = btn.inner_text()
-            m_price = re.search(r"\$([0-9,]+)", aria_label) or re.search(
+            m_cell_price = re.search(r"\$([0-9,]+)", aria_label) or re.search(
                 r"\$([0-9,]+)", cell_text
             )
-            if m_price:
+            if m_cell_price and is_avail == 1:
               try:
-                cell_price = float(m_price.group(1).replace(",", ""))
+                price_val = float(m_cell_price.group(1).replace(",", ""))
               except Exception:
                 pass
 
@@ -196,7 +213,7 @@ def scrape_listing(
                   "listing_id": listing_id,
                   "room_name": room_name,
                   "is_available": is_avail,
-                  "price_usd": cell_price,
+                  "price_usd": price_val,
                   "min_nights": 1,
               }
 
@@ -234,10 +251,10 @@ def scrape_listing(
 
     if filtered:
       booked_cnt = sum(1 for r in filtered if r["is_available"] == 0)
-      priced_cnt = sum(1 for r in filtered if r["price_usd"] is not None)
+      avail_cnt = sum(1 for r in filtered if r["is_available"] == 1)
       print(
           f"    Success: {len(filtered)} dates captured ({booked_cnt} booked,"
-          f" {priced_cnt} with pricing)."
+          f" {avail_cnt} available, Nightly Rate: ${nightly_rate or 0.0})."
       )
       return filtered
 
@@ -247,7 +264,7 @@ def scrape_listing(
 
 
 # ----------------------------------------------------------------------
-# Pipeline Entry Point
+# Pipeline Entry Point & Reporting
 # ----------------------------------------------------------------------
 def run():
   os.makedirs(DATA_DIR, exist_ok=True)
@@ -255,9 +272,9 @@ def run():
   today_str = today.strftime("%Y-%m-%d")
   cutoff = today + timedelta(days=FORWARD_DAYS)
 
-  sample_in, sample_out = get_sample_stay_dates(today)
+  sample_in, sample_out = get_guaranteed_open_dates(today)
   print(
-      f"Initiating Harpers Riverside Motel Comp sweep for {today_str} (pricing"
+      f"Initiating Harpers Riverside Model Comp sweep for {today_str} (rate"
       f" anchor: {sample_in} to {sample_out})..."
   )
 
@@ -330,7 +347,7 @@ def update_summary(rows: List[Dict[str, Any]], today_str: str):
       compressions.append((d_str, booked_count))
 
   with open(SUMMARY_FILE, "w", encoding="utf-8") as f:
-    f.write(f"# Harpers Riverside Model Comp Intelligence Brief\n\n")
+    f.write(f"# Harpers Riverside Motel Comp Intelligence Brief\n\n")
     f.write(f"**Last Refreshed**: `{today_str}`\n\n")
     f.write("## Forward Occupancy Pacing\n")
     f.write(f"- **Next 7 Days Occupancy**: **{calc_occ(7)}%**\n")
