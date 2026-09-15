@@ -1,4 +1,4 @@
-# Harpers Riverside Motel Comp Intelligence Brief
+# Harpers Riverside Model Comp Intelligence Brief
 
 **Last Refreshed**: `2026-09-15`
 
@@ -8,7 +8,7 @@
 - **Next 60 Days Occupancy**: **65.6%**
 
 ## High Supply Compression Dates (>= 75% Booked)
-| Stay Date | Comp Booked | Comp Occupancy | Recommended Action |
+| Stay Date | Comp Booked | Comp Occupancy | Recommended Pricing Action |
 | :--- | :--- | :--- | :--- |
 | 2026-10-07 | 3/4 | 75% | Raise rate +15% to +20% |
 | 2026-10-08 | 4/4 | 100% | Surge rate +25% to +35%, enforce 2-night min |
