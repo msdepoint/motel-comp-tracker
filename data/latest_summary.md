@@ -1,4 +1,4 @@
-# Harpers Riverside Model Comp Intelligence Brief
+# Harpers Riverside Motel Comp Intelligence Brief
 
 **Last Refreshed**: `2026-09-15`
 
