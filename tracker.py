@@ -9,6 +9,9 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_playwright
 
+# ----------------------------------------------------------------------
+# Configuration: Harpers Riverside Motel Comp (Competitor Listings)
+# ----------------------------------------------------------------------
 LISTINGS = {
     "1697396664319697096": "Room 5 (Queen)",
     "1697399341843035717": "Room 6 (Queen)",
@@ -23,7 +26,7 @@ FORWARD_DAYS = 90
 
 
 def parse_date_str(raw: str) -> Optional[str]:
-  """Normalizes various Airbnb calendar date attributes to YYYY-MM-DD."""
+  """Normalizes calendar date attributes to YYYY-MM-DD."""
   clean = raw.replace("calendar-day-", "").strip()
   for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y", "%m_%d_%Y"):
     try:
@@ -33,44 +36,68 @@ def parse_date_str(raw: str) -> Optional[str]:
   return None
 
 
-def extract_base_price(page) -> Optional[float]:
-  """Extracts the advertised base nightly room price from the booking card/header."""
+def get_sample_stay_dates(today: date) -> tuple:
+  """Calculates next upcoming weekend dates to force Airbnb to display live pricing."""
+  # Days until next Friday
+  days_ahead = (4 - today.weekday()) % 7
+  if days_ahead == 0:
+    days_ahead = 7
+  check_in = today + timedelta(days=days_ahead)
+  check_out = check_in + timedelta(days=2)  # 2-night weekend stay
+  return check_in.strftime("%Y-%m-%d"), check_out.strftime("%Y-%m-%d")
+
+
+def extract_live_nightly_price(page) -> Optional[float]:
+  """Extracts the live nightly rate rendered by Airbnb once dates are provided."""
   price_selectors = [
       'span[data-testid*="price"]',
       'div[data-section-id="BOOK_IT_SIDEBAR"] span:has-text("$")',
       'span:has-text("night")',
-      'div:has-text("per night")',
+      'div:has-text("night")',
+      'span:has-text("total")',
   ]
+
   for sel in price_selectors:
     try:
       elements = page.query_selector_all(sel)
       for el in elements:
         text = el.inner_text()
-        m = re.search(r"\$([0-9,]+)", text)
-        if m:
-          val = float(m.group(1).replace(",", ""))
-          if 40 <= val <= 1000:  # Reasonable sanity check for room rate
+        # Look for explicit "$XXX / night" or "$XXX x Y nights"
+        m_rate = re.search(r"\$([0-9,]+)\s*(?:x|/|\s*per)?\s*night", text, re.I)
+        if m_rate:
+          val = float(m_rate.group(1).replace(",", ""))
+          if 40 <= val <= 1000:
+            return val
+
+        # Fallback to general dollar amounts in booking widget
+        m_gen = re.search(r"\$([0-9,]+)", text)
+        if m_gen:
+          val = float(m_gen.group(1).replace(",", ""))
+          if 50 <= val <= 800:
             return val
     except Exception:
       pass
+
   return None
 
 
-def scrape_listing_with_retries(
+def scrape_listing(
     listing_id: str,
     room_name: str,
     today_str: str,
     cutoff_date: date,
+    check_in_sample: str,
+    check_out_sample: str,
     max_retries: int = 2,
 ) -> List[Dict[str, Any]]:
-  """Scrapes a listing with retry logic and robust availability checks."""
-  url = f"https://www.airbnb.com/rooms/{listing_id}"
+  """Loads listing with active dates to capture price, then scrapes full calendar."""
+  # Pass sample dates in URL so Airbnb calculates real prices instead of "Add dates for prices"
+  url = (
+      f"https://www.airbnb.com/rooms/{listing_id}?check_in={check_in_sample}&check_out={check_out_sample}&guests=1&adults=1"
+  )
 
   for attempt in range(1, max_retries + 1):
-    print(
-        f"\n--- Scraping {room_name} ({listing_id}) [Attempt"
-        f" {attempt}/{max_retries}] ---"
-    )
+    print(f"\n--- Scraping {room_name} ({listing_id}) [Attempt {attempt}] ---")
     captured_data: Dict[str, Dict[str, Any]] = {}
 
     with sync_playwright() as p:
@@ -97,14 +124,16 @@ def scrape_listing_with_retries(
         page.goto(url, wait_until="domcontentloaded", timeout=50000)
         page.wait_for_timeout(4000)
 
-        # 1. Capture base nightly rate
-        room_base_price = extract_base_price(page)
-        if room_base_price:
-          print(f"    Detected base nightly rate: ${room_base_price:.2f}")
+        # 1. Extract live rate now that dates are populated
+        nightly_rate = extract_live_nightly_price(page)
+        if nightly_rate:
+          print(f"    Live nightly rate detected: ${nightly_rate:.2f}")
         else:
-          print("    Note: Base rate not detected in header; checking DOM cells.")
+          print(
+              "    Note: Rate not found in sidebar, checking table breakdown..."
+          )
 
-        # 2. Dismiss cookie/translation overlays
+        # 2. Dismiss overlays
         for modal_btn in [
             'button[aria-label="Close"]',
             'button:has-text("Accept")',
@@ -117,11 +146,11 @@ def scrape_listing_with_retries(
           except Exception:
             pass
 
-        # 3. Scroll calendar into view
+        # 3. Scroll to calendar section
         page.evaluate("window.scrollBy(0, 1100)")
         page.wait_for_timeout(3000)
 
-        # 4. Extract calendar dates across 3 consecutive month clicks
+        # 4. Extract dates across 3 month pages
         for month_step in range(3):
           day_buttons = page.query_selector_all(
               '[data-testid*="calendar-day-"]'
@@ -148,15 +177,15 @@ def scrape_listing_with_retries(
             ):
               is_avail = 0
 
-            # Price extraction (cell-level price if available, otherwise base room rate)
-            price_val = room_base_price
+            # Cell-level pricing if available, else captured room rate
+            cell_price = nightly_rate
             cell_text = btn.inner_text()
             m_price = re.search(r"\$([0-9,]+)", aria_label) or re.search(
                 r"\$([0-9,]+)", cell_text
             )
             if m_price:
               try:
-                price_val = float(m_price.group(1).replace(",", ""))
+                cell_price = float(m_price.group(1).replace(",", ""))
               except Exception:
                 pass
 
@@ -167,7 +196,7 @@ def scrape_listing_with_retries(
                   "listing_id": listing_id,
                   "room_name": room_name,
                   "is_available": is_avail,
-                  "price_usd": price_val,
+                  "price_usd": cell_price,
                   "min_nights": 1,
               }
 
@@ -186,16 +215,13 @@ def scrape_listing_with_retries(
             break
 
       except PlaywrightTimeoutError:
-        print(
-            f"    Warning: Timeout encountered on attempt {attempt} for"
-            f" {room_name}."
-        )
+        print(f"    Timeout on attempt {attempt} for {room_name}.")
       except Exception as err:
-        print(f"    Error on attempt {attempt}: {err}")
+        print(f"    Error on attempt {attempt} for {room_name}: {err}")
       finally:
         browser.close()
 
-    # Filter to 90-day forward window
+    # Filter to forward window
     today_obj = date.today()
     filtered = []
     for s_date, rec in captured_data.items():
@@ -207,21 +233,21 @@ def scrape_listing_with_retries(
         pass
 
     if filtered:
-      booked_count = sum(1 for r in filtered if r["is_available"] == 0)
+      booked_cnt = sum(1 for r in filtered if r["is_available"] == 0)
+      priced_cnt = sum(1 for r in filtered if r["price_usd"] is not None)
       print(
-          f"    Success: {len(filtered)} dates captured ({booked_count} booked,"
-          f" {len(filtered)-booked_count} available)."
+          f"    Success: {len(filtered)} dates captured ({booked_cnt} booked,"
+          f" {priced_cnt} with pricing)."
       )
       return filtered
 
-    time.sleep(5)  # Pause before retry
+    time.sleep(4)
 
-  print(f"    Failed to extract dates for {room_name} after {max_retries} attempts.")
   return []
 
 
 # ----------------------------------------------------------------------
-# Pipeline Runner & Summarizer
+# Pipeline Entry Point
 # ----------------------------------------------------------------------
 def run():
   os.makedirs(DATA_DIR, exist_ok=True)
@@ -229,27 +255,23 @@ def run():
   today_str = today.strftime("%Y-%m-%d")
   cutoff = today + timedelta(days=FORWARD_DAYS)
 
+  sample_in, sample_out = get_sample_stay_dates(today)
   print(
-      f"Initiating Harpers Riverside Motel Comp sweep for {today_str} (90-day"
-      " horizon)..."
+      f"Initiating Harpers Riverside Motel Comp sweep for {today_str} (pricing"
+      f" anchor: {sample_in} to {sample_out})..."
   )
-  all_rows = []
 
+  all_rows = []
   for listing_id, room_name in LISTINGS.items():
-    rows = scrape_listing_with_retries(listing_id, room_name, today_str, cutoff)
+    rows = scrape_listing(
+        listing_id, room_name, today_str, cutoff, sample_in, sample_out
+    )
     all_rows.extend(rows)
-    time.sleep(4)  # Pacing between rooms to prevent IP rate limits
+    time.sleep(3)
 
   if not all_rows:
-    print(
-        "\n[FATAL] No records extracted from any of the comp listings.",
-        file=sys.stderr,
-    )
+    print("\n[FATAL] No records extracted.", file=sys.stderr)
     sys.exit(1)
-
-  # Check listing coverage
-  rooms_captured = set(r["room_name"] for r in all_rows)
-  print(f"\nRooms successfully captured ({len(rooms_captured)}/4): {rooms_captured}")
 
   fieldnames = [
       "snapshot_date",
@@ -268,7 +290,10 @@ def run():
       writer.writeheader()
     writer.writerows(all_rows)
 
-  print(f"Successfully logged {len(all_rows)} rows to {CSV_FILE}.")
+  print(
+      f"\nSuccessfully wrote {len(all_rows)} rows to {CSV_FILE} for"
+      f" {today_str}."
+  )
 
   update_summary(all_rows, today_str)
 
@@ -305,7 +330,7 @@ def update_summary(rows: List[Dict[str, Any]], today_str: str):
       compressions.append((d_str, booked_count))
 
   with open(SUMMARY_FILE, "w", encoding="utf-8") as f:
-    f.write(f"# Harpers Riverside Motel Comp Intelligence Brief\n\n")
+    f.write(f"# Harpers Riverside Model Comp Intelligence Brief\n\n")
     f.write(f"**Last Refreshed**: `{today_str}`\n\n")
     f.write("## Forward Occupancy Pacing\n")
     f.write(f"- **Next 7 Days Occupancy**: **{calc_occ(7)}%**\n")
@@ -315,8 +340,8 @@ def update_summary(rows: List[Dict[str, Any]], today_str: str):
     f.write("## High Supply Compression Dates (>= 75% Booked)\n")
     if compressions:
       f.write(
-          "| Stay Date | Comp Booked | Comp Occupancy | Recommended Action"
-          " |\n"
+          "| Stay Date | Comp Booked | Comp Occupancy | Recommended Pricing"
+          " Action |\n"
       )
       f.write(
           "| :--- | :--- | :--- | :--- |\n"
@@ -329,9 +354,7 @@ def update_summary(rows: List[Dict[str, Any]], today_str: str):
         )
         f.write(f"| {d_str} | {count}/4 | {int(count/4*100)}% | {action} |\n")
     else:
-      f.write(
-          "No dates currently exceed 75% compression in the next 90 days.\n"
-      )
+      f.write("No dates currently exceed 75% compression in next 90 days.\n")
 
 
 if __name__ == "__main__":
