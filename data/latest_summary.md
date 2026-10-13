@@ -1,6 +1,6 @@
 # Cranberry Lake Lodging Market Dashboard
 
-**Last Data Refresh**: `2026-10-12`
+**Last Data Refresh**: `2026-10-13`
 
 ## 1. Market Occupancy Pacing
 
@@ -21,6 +21,6 @@ Dates where remaining inventory is constrained. In winter/fall (during competito
 
 | Stay Date | Market Mode | Town Status | Harper's Booked | Comp Status | Tactical Recommendation |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-10-12 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
+| 2026-10-17 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
 | 2026-10-24 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
 
