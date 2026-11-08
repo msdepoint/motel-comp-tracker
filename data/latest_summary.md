@@ -1,18 +1,18 @@
 # Cranberry Lake Lodging Market Dashboard
 
-**Last Data Refresh**: `2026-11-07`
+**Last Data Refresh**: `2026-11-08`
 
 ## 1. Market Occupancy Pacing
 
 | Timeframe | Active Town Occupancy | Harper's Riverside | Competitor Comp |
 | :--- | :--- | :--- | :--- |
-| **Next 7 Days** | **28.1%** | 28.1% | 0.0% |
-| **Next 30 Days** | **7.3%** | 7.3% | Seasonally Closed (0% cap) |
-| **Next 60 Days** | **3.7%** | 3.7% | Seasonally Closed (0% cap) |
+| **Next 7 Days** | **25.0%** | 25.0% | 0.0% |
+| **Next 30 Days** | **6.5%** | 6.5% | Seasonally Closed (0% cap) |
+| **Next 60 Days** | **3.3%** | 3.3% | Seasonally Closed (0% cap) |
 
 ## 2. Competitive Pricing Benchmark (Active Duopoly Windows)
 
-- **Harper's Riverside Average Nightly Rate**: **$110.17**
+- **Harper's Riverside Average Nightly Rate**: **$110.0**
 - **Competitor Status**: Closed for season (Oct 7, 2026 - May 20, 2027). Harper's holds 100% town pricing power.
 
 ## 3. High Market Compression Dates (>= 75% Full)
@@ -21,7 +21,6 @@ Dates where remaining inventory is constrained. In winter/fall (during competito
 
 | Stay Date | Market Mode | Town Status | Harper's Booked | Comp Status | Tactical Recommendation |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-11-07 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
-| 2026-11-08 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
-| 2026-11-09 | Monopoly | 3/4 booked | 3/4 booked | Seasonally Closed | Harper's has only 1 room left! Surge rate +30%, 2-night min |
+| 2026-11-08 | Monopoly | 4/4 booked | 4/4 booked | Seasonally Closed | 100% Sold out |
+| 2026-11-09 | Monopoly | 4/4 booked | 4/4 booked | Seasonally Closed | 100% Sold out |
 
