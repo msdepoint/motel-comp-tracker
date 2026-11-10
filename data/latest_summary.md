@@ -1,14 +1,14 @@
 # Cranberry Lake Lodging Market Dashboard
 
-**Last Data Refresh**: `2026-11-09`
+**Last Data Refresh**: `2026-11-10`
 
 ## 1. Market Occupancy Pacing
 
 | Timeframe | Active Town Occupancy | Harper's Riverside | Competitor Comp |
 | :--- | :--- | :--- | :--- |
-| **Next 7 Days** | **12.5%** | 12.5% | 0.0% |
-| **Next 30 Days** | **3.2%** | 3.2% | Seasonally Closed (0% cap) |
-| **Next 60 Days** | **1.6%** | 1.6% | Seasonally Closed (0% cap) |
+| **Next 7 Days** | **0.0%** | 0.0% | 0.0% |
+| **Next 30 Days** | **0.0%** | 0.0% | Seasonally Closed (0% cap) |
+| **Next 60 Days** | **0.0%** | 0.0% | Seasonally Closed (0% cap) |
 
 ## 2. Competitive Pricing Benchmark (Active Duopoly Windows)
 
@@ -19,7 +19,4 @@
 
 Dates where remaining inventory is constrained. In winter/fall (during competitor closure), you hold 100% of town capacity:
 
-| Stay Date | Market Mode | Town Status | Harper's Booked | Comp Status | Tactical Recommendation |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-11-09 | Monopoly | 4/4 booked | 4/4 booked | Seasonally Closed | 100% Sold out |
-
+No dates currently exceed the 75% market compression threshold in the next 90 days.
