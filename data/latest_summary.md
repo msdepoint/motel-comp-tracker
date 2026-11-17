@@ -1,18 +1,18 @@
 # Cranberry Lake Lodging Market Dashboard
 
-**Last Data Refresh**: `2026-11-16`
+**Last Data Refresh**: `2026-11-17`
 
 ## 1. Market Occupancy Pacing
 
 | Timeframe | Active Town Occupancy | Harper's Riverside | Competitor Comp |
 | :--- | :--- | :--- | :--- |
-| **Next 7 Days** | **50.0%** | 50.0% | 0.0% |
-| **Next 30 Days** | **50.0%** | 50.0% | Seasonally Closed (0% cap) |
-| **Next 60 Days** | **50.0%** | 50.0% | Seasonally Closed (0% cap) |
+| **Next 7 Days** | **0.0%** | 0.0% | 0.0% |
+| **Next 30 Days** | **0.0%** | 0.0% | Seasonally Closed (0% cap) |
+| **Next 60 Days** | **0.0%** | 0.0% | Seasonally Closed (0% cap) |
 
 ## 2. Competitive Pricing Benchmark (Active Duopoly Windows)
 
-- **Harper's Riverside Average Nightly Rate**: **$110.0**
+- **Harper's Riverside Average Nightly Rate**: **$112.5**
 - **Competitor Status**: Closed for season (Oct 7, 2026 - May 20, 2027). Harper's holds 100% town pricing power.
 
 ## 3. High Market Compression Dates (>= 75% Full)
