@@ -1,6 +1,6 @@
 # Cranberry Lake Lodging Market Dashboard
 
-**Last Data Refresh**: `2026-11-20`
+**Last Data Refresh**: `2026-11-21`
 
 ## 1. Market Occupancy Pacing
 
